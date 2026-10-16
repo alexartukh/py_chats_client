@@ -19,9 +19,9 @@ export default function CreateTopicPage() {
   }
 
   return (
-    <div>
+    <div className="column">
       <h2>Новая тема</h2>
-      <form onSubmit={handleSubmit}>
+      <form className="data-form" onSubmit={handleSubmit}>
         <input
           type="text"
           name="title"

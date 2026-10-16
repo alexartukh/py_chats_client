@@ -63,6 +63,48 @@ body {
   background: #e8f0fe;
 }
 
+/* Формы страниц создания (пользователь, тема) — в том же стиле, что и .data-table */
+.data-form {
+  display: flex;
+  flex-direction: column;
+  max-width: 400px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-top: 2px solid #ccc;
+}
+
+.data-form input {
+  padding: 8px 12px;
+  font-size: 14px;
+  border: none;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Чётные поля чуть темнее, как чётные строки таблицы */
+.data-form input:nth-of-type(even) {
+  background: #fafafa;
+}
+
+.data-form input:focus {
+  outline: none;
+  background: #e8f0fe;
+}
+
+/* Кнопка — как заголовок таблицы */
+.data-form button {
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  background: #f5f5f5;
+  border: none;
+  cursor: pointer;
+}
+
+.data-form button:hover {
+  background: #e8f0fe;
+}
+
 /* Строка таблицы, по клику на которую происходит переход */
 .clickable-row {
   cursor: pointer;
@@ -78,6 +120,50 @@ body {
   padding: 8px 12px;
   border-radius: 4px;
   margin-bottom: 8px;
+  /* Слева автор/дата/текст, справа кнопка "Комментировать" */
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Левая часть плашки занимает всё место, кнопка прижимается вправо */
+.message-body {
+  flex: 1;
+}
+
+/* Затемнённый фон модального диалога на весь экран */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Окно модального диалога */
+.modal-window {
+  background: #fff;
+  padding: 16px;
+  border-radius: 6px;
+  width: 500px;
+  max-width: calc(100% - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-window textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+/* Кнопки диалога справа */
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 /* Строка "автор дата" над текстом сообщения */

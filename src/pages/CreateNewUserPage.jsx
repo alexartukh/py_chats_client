@@ -31,9 +31,9 @@ export default function CreateNewUserPage() {
   }
 
   return (
-    <div>
+    <div className="column">
       <h2>Регистрация</h2>
-      <form onSubmit={handleSubmit}>
+      <form className="data-form" onSubmit={handleSubmit}>
         <input
           type="text"
           name="login"
