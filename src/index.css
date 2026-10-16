@@ -1,0 +1,23 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+
+/* Страница поделена на 2 колонки: слева пользователи, справа темы */
+.home {
+  display: flex;
+  min-height: 100vh;
+}
+
+.column {
+  flex: 1;
+  padding: 20px;
+}
+
+.column + .column {
+  border-left: 1px solid #ccc;
+}
+
+.error {
+  color: #c00;
+}
