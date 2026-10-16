@@ -1,6 +1,86 @@
 // Адреса API сервера (http://localhost:8000). Поменяй, если у тебя другие.
 export const USERS_URL = '/api/users'
 export const TOPICS_URL = '/api/topics'
+export const LOGIN_URL = '/api/login'
+export const LOGOUT_URL = '/api/logout'
+export const CREATE_NEW_USER_URL = '/api/create_new_user'
+export const CREATE_NEW_TOPIC_URL = '/api/create_new_topic'
+
+// Ключ, под которым токен лежит в localStorage
+export const TOKEN_STORAGE_KEY = 'token'
+// Ключ, под которым в localStorage лежит логин, введённый при успешном входе
+export const LOGIN_STORAGE_KEY = 'login'
+
+// POST {"login": "...", "password": "..."} -> {"token": "..."}.
+// При успехе в localStorage сохраняются токен и введённый логин.
+export async function login(loginValue, password) {
+  const res = await fetch(LOGIN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login: loginValue, password: password }),
+  })
+  const data = await res.json()
+  if (!res.ok) throw new Error(data.error ?? `${res.status} ${res.statusText}`)
+  localStorage.setItem(TOKEN_STORAGE_KEY, data.token)
+  localStorage.setItem(LOGIN_STORAGE_KEY, loginValue)
+  return data.token
+}
+
+// Токен и логин удаляются из localStorage, затем POST на LOGOUT_URL с заголовком Authorization: Bearer <token>.
+// Ответ сервера не проверяется.
+export async function logout() {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+  localStorage.removeItem(TOKEN_STORAGE_KEY)
+  localStorage.removeItem(LOGIN_STORAGE_KEY)
+  await fetch(LOGOUT_URL, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+// POST {"login": "...", "password": "..."} на CREATE_NEW_USER_URL.
+// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+export async function createNewUser(loginValue, password) {
+  const res = await fetch(CREATE_NEW_USER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ login: loginValue, password: password }),
+  })
+  if (!res.ok) {
+    let message = `${res.status} ${res.statusText}`
+    try {
+      const data = await res.json()
+      if (data.error) message = data.error
+    } catch {
+      // Тело ответа не JSON — оставляем статус
+    }
+    throw new Error(message)
+  }
+}
+
+// POST {"title": "..."} на CREATE_NEW_TOPIC_URL с заголовком Authorization: Bearer <token из localStorage>.
+// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+export async function createNewTopic(title) {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+  const res = await fetch(CREATE_NEW_TOPIC_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ title: title }),
+  })
+  if (!res.ok) {
+    let message = `${res.status} ${res.statusText}`
+    try {
+      const data = await res.json()
+      if (data.error) message = data.error
+    } catch {
+      // Тело ответа не JSON — оставляем статус
+    }
+    throw new Error(message)
+  }
+}
 
 export async function getJson(url) {
   const res = await fetch(url)
