@@ -9,12 +9,12 @@ export default function HomePage() {
   return (
     <div className="home">
       <section className="column">
-        <UsersList />
         <Link to="/create_new_user">+ Создать пользователя</Link>
+        <UsersList />
       </section>
       <section className="column">
-        <TopicsList />
         {token && <Link to="/create_new_topic">+ Создать тему</Link>}
+        <TopicsList />
       </section>
     </div>
   )

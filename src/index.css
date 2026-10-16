@@ -32,6 +32,61 @@ body {
   flex-basis: 100%;
 }
 
+/* Таблицы списков (пользователи, темы) */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.data-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #ccc;
+}
+
+/* Чётные строки чуть темнее, чтобы строки было легче различать */
+.data-table tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+/* Подсветка кликабельной строки при наведении. Селектор длиннее, чем у чётных строк, чтобы перебить их фон */
+.data-table tbody tr.clickable-row:hover {
+  background: #e8f0fe;
+}
+
+/* Строка таблицы, по клику на которую происходит переход */
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background: #eee;
+}
+
+/* Светло-серая плашка сообщения на странице темы */
+.message-plate {
+  background: #f0f0f0;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+/* Строка "автор дата" над текстом сообщения */
+.message-header {
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 4px;
+}
+
 .error {
   color: #c00;
 }

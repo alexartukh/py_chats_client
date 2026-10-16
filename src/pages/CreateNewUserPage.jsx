@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createNewUser } from '../api.js'
+import { useAuth } from '../context/AuthContext.jsx'
 
 export default function CreateNewUserPage() {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [loginValue, setLoginValue] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
@@ -20,6 +22,8 @@ export default function CreateNewUserPage() {
 
     try {
       await createNewUser(loginValue, password)
+      // Сразу входим созданным пользователем
+      await login(loginValue, password)
       navigate('/')
     } catch (err) {
       setError(err.message)

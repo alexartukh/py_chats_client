@@ -5,6 +5,7 @@ export const LOGIN_URL = '/api/login'
 export const LOGOUT_URL = '/api/logout'
 export const CREATE_NEW_USER_URL = '/api/create_new_user'
 export const CREATE_NEW_TOPIC_URL = '/api/create_new_topic'
+export const MESSAGES_URL = '/api/messages'
 
 // Ключ, под которым токен лежит в localStorage
 export const TOKEN_STORAGE_KEY = 'token'
@@ -80,6 +81,11 @@ export async function createNewTopic(title) {
     }
     throw new Error(message)
   }
+}
+
+// GET MESSAGES_URL?topic_id=<topicId> -> [{"message_id", "text", "user_id", "user__login", "created_at"}, ...]
+export async function getMessages(topicId) {
+  return getJson(`${MESSAGES_URL}?topic_id=${encodeURIComponent(topicId)}`)
 }
 
 export async function getJson(url) {

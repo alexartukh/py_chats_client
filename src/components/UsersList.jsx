@@ -18,7 +18,7 @@ export default function UsersList() {
       <h2>Пользователи</h2>
       {loading && <p>Загрузка...</p>}
       {error && <p className="error">Ошибка: {error}</p>}
-      <table>
+      <table className="data-table">
         <thead>
           <tr>
             <th>Логин</th>

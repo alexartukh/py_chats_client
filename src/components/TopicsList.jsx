@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TOPICS_URL, getJson } from '../api.js'
 
 export default function TopicsList() {
+  const navigate = useNavigate()
   const [topics, setTopics] = useState([])
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -18,9 +20,10 @@ export default function TopicsList() {
       <h2>Темы</h2>
       {loading && <p>Загрузка...</p>}
       {error && <p className="error">Ошибка: {error}</p>}
-      <table>
+      <table className="data-table">
         <thead>
           <tr>
+            <th>ID</th>
             <th>Название</th>
             <th>Автор</th>
             <th>Создана</th>
@@ -28,7 +31,12 @@ export default function TopicsList() {
         </thead>
         <tbody>
           {topics.map((topic) => (
-            <tr key={topic.topic_id}>
+            <tr
+              key={topic.topic_id}
+              className="clickable-row"
+              onClick={() => navigate(`/topic/${topic.topic_id}`)}
+            >
+              <td>{topic.topic_id}</td>
               <td>{topic.title}</td>
               <td>{topic.created_by_user__login}</td>
               <td>{topic.created_at}</td>
