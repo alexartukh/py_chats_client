@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { getTopic, getMessages, createNewMessage, deleteExistingMessage } from '../api.js'
 import EnterMessage from '../components/EnterMessage.jsx'
+import MessageAttachment from '../components/MessageAttachment.jsx'
+import RootMessages from '../components/RootMessages.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
+import { isMessageCorrect } from '../messageMarkup.js'
 
 export default function TopicPage() {
   // topicId берётся из адреса /topic/:topicId (см. App.jsx)
@@ -18,6 +21,9 @@ export default function TopicPage() {
   const [isEnterMessageOpen, setIsEnterMessageOpen] = useState(false)
   // message_id сообщения, на которое пишется ответ. null — новое корневое сообщение
   const [parentMessageId, setParentMessageId] = useState(null)
+  // Версия таблицы корневых сообщений. Увеличивается после добавления и удаления сообщения;
+  // RootMessages получает её пропом reloadVersion и при изменении загружает таблицу заново
+  const [rootMessagesVersion, setRootMessagesVersion] = useState(0)
 
   // parentMessageId: message_id родителя или null для корневого сообщения
   function openEnterMessage(parentMessageId) {
@@ -51,9 +57,11 @@ export default function TopicPage() {
       Number(topicId),
       comment.parent_message_id,
       comment.text,
+      comment.attachment,
     )
     closeEnterMessage()
     loadMessages()
+    setRootMessagesVersion(rootMessagesVersion + 1)
   }
 
   // Удаляет сообщение (сервер удаляет и все ответы на него) и перезагружает список.
@@ -68,6 +76,7 @@ export default function TopicPage() {
     try {
       await deleteExistingMessage(messageId)
       loadMessages()
+      setRootMessagesVersion(rootMessagesVersion + 1)
     } catch (err) {
       setError(err.message)
     }
@@ -102,42 +111,60 @@ export default function TopicPage() {
       </h2>
 
       {topicError && <p className="error">Ошибка: {topicError}</p>}
+
+      {/* Таблица корневых сообщений; загружает их сама по topicId и заново при изменении reloadVersion */}
+      <RootMessages topicId={topicId} reloadVersion={rootMessagesVersion} />
+
       {loading && <p>Загрузка...</p>}
       {error && <p className="error">Ошибка: {error}</p>}
       {/* Только после загрузки и без ошибки: иначе пустой список означает "ещё не загрузили" или "не смогли загрузить" */}
       {!loading && !error && messages.length === 0 && <p>Сообщений пока нет</p>}
       
       {token && (
-        <button type="button" onClick={() => openEnterMessage(null)}>Добавить корневой</button>
+        <button type="button" className="primary-button" onClick={() => openEnterMessage(null)}>Добавить корневой</button>
       )}
       
-      {messages.map((message) => (
-        // depth: 0 — сообщение верхнего уровня, 1 — ответ на него и т.д. Отступ 20px на каждый уровень
-        <div
-          key={message.message_id}
-          className="message-plate"
-          style={{ marginLeft: `${message.depth * 20}px` }}
-        >
-          <div className="message-body">
-            <div className="message-header">
-              <b>{message.user__login}</b> {message.created_at}
+      <div className="messages-list">
+        {messages.map((message) => (
+          // depth: 0 — сообщение верхнего уровня, 1 — ответ на него и т.д. Отступ 20px на каждый уровень
+          <div
+            key={message.message_id}
+            className="message-plate"
+            style={{ marginLeft: `${message.depth * 20}px` }}
+          >
+            <div className="message-body">
+              <div className="message-header">
+                <b>{message.user__login}</b> {message.created_at}
+              </div>
+              {/* Как в предпросмотре EnterMessage: если isMessageCorrect вернула true — текст показывается как HTML.
+                  Иначе (сервер разметку не проверяет, текст мог сохраниться с ошибкой) — обычным текстом, теги видны как есть */}
+              {isMessageCorrect(message.t) ? (
+                <div className="message-text" dangerouslySetInnerHTML={{ __html: message.t }} />
+              ) : (
+                <div className="message-text">{message.t}</div>
+              )}
+              {/* Без файла сервер отдаёт attachment и attachment_name как null */}
+              {message.attachment !== null && message.attachment_name !== null && (
+                <MessageAttachment
+                  attachment={message.attachment}
+                  attachmentName={message.attachment_name}
+                />
+              )}
             </div>
-            <div>{message.t}</div>
+            {/* Комментировать может только вошедший пользователь */}
+            {token && (
+              <button type="button" className="primary-button" onClick={() => openEnterMessage(message.message_id)}>Комментировать</button>
+            )}
+            {/* Только автору: логин автора сообщения совпадает с логином вошедшего пользователя */}
+            {token && message.user__login === userLogin && (
+              <button type="button" className="danger-button" onClick={() => handleDeleteMessage(message.message_id)}>Удалить</button>
+            )}
           </div>
-          {/* Комментировать может только вошедший пользователь */}
-          {token && (
-            <button type="button" onClick={() => openEnterMessage(message.message_id)}>Комментировать</button>
-          )}
-          {/* Только автору: логин автора сообщения совпадает с логином вошедшего пользователя */}
-          {token && message.user__login === userLogin && (
-            <button type="button" onClick={() => handleDeleteMessage(message.message_id)}>Удалить</button>
-          )}
-        </div>
-      ))}
-      {/* Новое корневое сообщение: parentMessageId = null. Только для вошедшего пользователя */}
+        ))}
+      </div>
       
-      {token && (
-        <button type="button" onClick={() => openEnterMessage(null)}>Добавить корневой</button>
+      {token && messages.length > 0 && (
+        <button type="button" className="primary-button" onClick={() => openEnterMessage(null)}>Добавить корневой</button>
       )}
       
       {isEnterMessageOpen && (

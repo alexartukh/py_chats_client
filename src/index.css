@@ -27,6 +27,18 @@ body {
   padding: 0 20px;
 }
 
+/* Подвал: такие же отступы слева и справа, как у шапки (.main-header) */
+.main-footer {
+  padding: 0 20px;
+}
+
+/* Форма входа в шапке: поля и кнопка в одну строку с промежутком 8px между ними */
+.header-login-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Ошибка логина в шапке — отдельной строкой на всю ширину */
 .main-header .error {
   flex-basis: 100%;
@@ -51,6 +63,11 @@ body {
   font-weight: 600;
   color: #333;
   border-bottom: 2px solid #ccc;
+}
+
+/* Блок таблицы корневых сообщений на странице темы: отступ снизу, чтобы таблица не сливалась с кнопкой под ней */
+.root-messages {
+  margin-bottom: 24px;
 }
 
 /* Чётные строки чуть темнее, чтобы строки было легче различать */
@@ -114,6 +131,12 @@ body {
   background: #eee;
 }
 
+/* Список сообщений на странице темы: отступы сверху и снизу, чтобы он не прилипал к кнопкам "Добавить корневой" */
+.messages-list {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
 /* Светло-серая плашка сообщения на странице темы */
 .message-plate {
   background: #f0f0f0;
@@ -146,7 +169,8 @@ body {
   background: #fff;
   padding: 16px;
   border-radius: 6px;
-  width: 500px;
+  /* 800px, а не 500px: в окне две колонки — текст и предпросмотр */
+  width: 800px;
   max-width: calc(100% - 32px);
   display: flex;
   flex-direction: column;
@@ -157,6 +181,24 @@ body {
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
+}
+
+/* Форма на странице (регистрация, новая тема) — как окно формы сообщения (.modal-window), но без затемнения */
+.entry-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 500px;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+/* Кнопки формы на странице справа — как .modal-buttons */
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 /* Поле формы: подпись сверху, под ней значение или инпут */
@@ -174,6 +216,35 @@ body {
 /* Красная звёздочка у обязательного поля */
 .required-mark {
   color: #c00;
+}
+
+/* Текст сообщения слева и предпросмотр справа, две равные колонки */
+.text-with-preview {
+  display: flex;
+  gap: 12px;
+}
+
+.text-with-preview > .form-field {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Кнопки вставки тегов над полем текста */
+.tag-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+/* Предпросмотр текста: только для чтения, по высоте как textarea на 6 строк */
+.message-preview {
+  flex: 1;
+  min-height: 6em;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
 }
 
 /* Поле CAPTCHA слева, картинка справа */
@@ -206,6 +277,81 @@ body {
   color: #666;
   font-size: 0.9em;
   margin-bottom: 4px;
+}
+
+/* Текст сообщения в плашке: переносы строк сохраняются, как в предпросмотре (.message-preview) */
+.message-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Вложение под текстом сообщения */
+.message-attachment {
+  margin-top: 8px;
+}
+
+/* Сервер картинки не уменьшает, поэтому размер на экране ограничен здесь (по ТЗ 320x240), пропорции сохраняются */
+.message-attachment img {
+  display: block;
+  max-width: 320px;
+  max-height: 240px;
+}
+
+/* Текст из .txt: сохраняются переносы строк, длинные строки переносятся, а не растягивают плашку */
+.message-attachment pre {
+  margin: 0;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow: auto;
+}
+
+/* Синяя выделяющаяся кнопка — для главного действия формы ("Отправить").
+   Вешается и на <button>, и на ссылки <Link> (это <a>): для ссылки нужны display и text-decoration ниже */
+.primary-button {
+  display: inline-block;
+  text-decoration: none;
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #1a73e8;
+  border: 1px solid #1a73e8;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.primary-button:hover {
+  background: #1558b0;
+  border-color: #1558b0;
+}
+
+/* Красная кнопка опасного действия ("Удалить"). Все свойства — как у .primary-button, отличаются только цвета */
+.danger-button {
+  display: inline-block;
+  text-decoration: none;
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #d93025;
+  border: 1px solid #d93025;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.danger-button:hover {
+  background: #a50e0e;
+  border-color: #a50e0e;
+}
+
+.primary-button:disabled {
+  background: #9fc1f3;
+  border-color: #9fc1f3;
+  cursor: default;
 }
 
 .error {

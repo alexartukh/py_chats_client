@@ -1,6 +1,6 @@
 export default function MainFooter() {
   return (
-    <footer>
+    <footer className="main-footer">
       <p>(c) Alex Artukh - 2026</p>
     </footer>
   )

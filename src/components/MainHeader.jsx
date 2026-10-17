@@ -36,10 +36,10 @@ export default function MainHeader() {
       <h2><Link to="/">MyForum</Link></h2>
       {token ? (
         <div>
-          {userLogin} ({userEmail}) &nbsp; <button type="button" onClick={handleLogout}>Выйти</button>
+          {userLogin} ({userEmail}) &nbsp; <button type="button" className="primary-button" onClick={handleLogout}>Выйти</button>
         </div>
       ) : (
-        <form onSubmit={handleLogin}>
+        <form className="header-login-form" onSubmit={handleLogin}>
           <input
             type="text"
             name="login"
@@ -54,7 +54,7 @@ export default function MainHeader() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <button type="submit">Войти</button>
+          <button type="submit" className="primary-button">Войти</button>
         </form>
       )}
       {error && <p className="error">Ошибка: {error}</p>}

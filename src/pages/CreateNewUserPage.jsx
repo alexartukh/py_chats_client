@@ -32,38 +32,58 @@ export default function CreateNewUserPage() {
   return (
     <div className="column">
       <h2>Регистрация</h2>
-      <form className="data-form" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          name="login"
-          placeholder="Логин"
-          value={loginValue}
-          onChange={(e) => setLoginValue(e.target.value)}
-        />
-        <input
-          type="text"
-          name="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          name="password"
-          placeholder="Пароль"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <input
-          type="password"
-          name="password_confirm"
-          placeholder="Подтверждение пароля"
-          value={passwordConfirm}
-          onChange={(e) => setPasswordConfirm(e.target.value)}
-        />
-        <button type="submit">Создать</button>
+      {/* Оформление как у формы сообщения (EnterMessage): подпись над полем, * у обязательных, кнопка справа */}
+      <form className="entry-form" onSubmit={handleSubmit}>
+        <label className="form-field">
+          <span>Логин <span className="required-mark">*</span></span>
+          <input
+            type="text"
+            name="login"
+            required={true}
+            value={loginValue}
+            onChange={(e) => setLoginValue(e.target.value)}
+          />
+        </label>
+
+        <label className="form-field">
+          <span>Email <span className="required-mark">*</span></span>
+          <input
+            type="text"
+            name="email"
+            required={true}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+
+        <label className="form-field">
+          <span>Пароль <span className="required-mark">*</span></span>
+          <input
+            type="password"
+            name="password"
+            required={true}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+
+        <label className="form-field">
+          <span>Подтверждение пароля <span className="required-mark">*</span></span>
+          <input
+            type="password"
+            name="password_confirm"
+            required={true}
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
+          />
+        </label>
+
+        {error && <p className="error">Ошибка: {error}</p>}
+
+        <div className="form-buttons">
+          <button type="submit" className="primary-button">Создать</button>
+        </div>
       </form>
-      {error && <p className="error">Ошибка: {error}</p>}
     </div>
   )
 }
