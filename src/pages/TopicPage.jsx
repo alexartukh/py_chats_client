@@ -1,30 +1,72 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { getMessages } from '../api.js'
+import { getMessages, createNewMessage, deleteExistingMessage } from '../api.js'
 import EnterMessage from '../components/EnterMessage.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 
 export default function TopicPage() {
   // topicId берётся из адреса /topic/:topicId (см. App.jsx)
   const { topicId } = useParams()
+  const { token, userLogin } = useAuth()
   const [messages, setMessages] = useState([])
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
-  // Сообщение, на которое пишется комментарий. null — диалог закрыт
-  const [replyToMessage, setReplyToMessage] = useState(null)
+  // Открыт ли диалог EnterMessage
+  const [isEnterMessageOpen, setIsEnterMessageOpen] = useState(false)
+  // message_id сообщения, на которое пишется ответ. null — новое корневое сообщение
+  const [parentMessageId, setParentMessageId] = useState(null)
 
-  // Пока без вызова сервера: диалог просто закрывается.
-  // comment = { login, email, home_page, captcha, text } — см. EnterMessage
-  function handleSubmitComment(comment) {
-    setReplyToMessage(null)
+  // parentMessageId: message_id родителя или null для корневого сообщения
+  function openEnterMessage(parentMessageId) {
+    setParentMessageId(parentMessageId)
+    setIsEnterMessageOpen(true)
   }
 
-  useEffect(() => {
+  function closeEnterMessage() {
+    setIsEnterMessageOpen(false)
+    setParentMessageId(null)
+  }
+
+  function loadMessages() {
     setLoading(true)
     setError(null)
     getMessages(topicId)
       .then(setMessages)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
+  }
+
+  // comment = { parent_message_id, login, email, home_page, captcha, text } — см. EnterMessage.
+  // На сервер уходят login, email, topic_id, parent_message_id и text (как "t"); автора сервер берёт из токена.
+  // home_page и captcha сервер пока не принимает.
+  // topicId из адреса — строка, сервер ждёт число, поэтому Number(topicId).
+  // Ошибку не ловим здесь: её покажет EnterMessage, диалог останется открытым.
+  async function handleSubmitComment(comment) {
+    await createNewMessage(
+      comment.login,
+      comment.email,
+      Number(topicId),
+      comment.parent_message_id,
+      comment.text,
+    )
+    closeEnterMessage()
+    loadMessages()
+  }
+
+  // Удаляет сообщение (сервер удаляет и все ответы на него) и перезагружает список.
+  // Ошибка показывается над списком сообщений.
+  async function handleDeleteMessage(messageId) {
+    setError(null)
+    try {
+      await deleteExistingMessage(messageId)
+      loadMessages()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  useEffect(() => {
+    loadMessages()
   }, [topicId])
 
   return (
@@ -45,13 +87,25 @@ export default function TopicPage() {
             </div>
             <div>{message.t}</div>
           </div>
-          <button type="button" onClick={() => setReplyToMessage(message)}>Комментировать</button>
+          {/* Комментировать может только вошедший пользователь */}
+          {token && (
+            <button type="button" onClick={() => openEnterMessage(message.message_id)}>Комментировать</button>
+          )}
+          {/* Только автору: логин автора сообщения совпадает с логином вошедшего пользователя */}
+          {token && message.user__login === userLogin && (
+            <button type="button" onClick={() => handleDeleteMessage(message.message_id)}>Удалить</button>
+          )}
         </div>
       ))}
-      {replyToMessage && (
+      {/* Новое корневое сообщение: parentMessageId = null. Только для вошедшего пользователя */}
+      {token && (
+        <button type="button" onClick={() => openEnterMessage(null)}>Добавить корневой</button>
+      )}
+      {isEnterMessageOpen && (
         <EnterMessage
+          parentMessageId={parentMessageId}
           onSubmit={handleSubmitComment}
-          onClose={() => setReplyToMessage(null)}
+          onClose={closeEnterMessage}
         />
       )}
     </div>

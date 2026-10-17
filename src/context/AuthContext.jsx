@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import {
   TOKEN_STORAGE_KEY,
   LOGIN_STORAGE_KEY,
@@ -6,6 +6,7 @@ import {
   login as apiLogin,
   logout as apiLogout,
   createNewUser as apiCreateNewUser,
+  setSessionExpiredHandler,
 } from '../api.js'
 
 // Общее состояние входа: токен, логин и email пользователя и функции login/logout/createNewUser.
@@ -16,6 +17,17 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem(TOKEN_STORAGE_KEY))
   const [userLogin, setUserLogin] = useState(localStorage.getItem(LOGIN_STORAGE_KEY))
   const [userEmail, setUserEmail] = useState(localStorage.getItem(EMAIL_STORAGE_KEY))
+
+  // Когда защищённый запрос получил 401, api.js сам чистит localStorage и вызывает эту функцию,
+  // а здесь очищается state. Регистрируется один раз, после первой отрисовки AuthProvider ([] в зависимостях).
+  // Не снимается: AuthProvider обёрнут вокруг всего приложения в main.jsx и не размонтируется.
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      setToken(null)
+      setUserLogin(null)
+      setUserEmail(null)
+    })
+  }, [])
 
   // api.login сохраняет токен, логин и email в localStorage, здесь они кладутся в state
   async function login(loginValue, password) {

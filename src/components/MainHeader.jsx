@@ -5,8 +5,7 @@ import { useNavigate } from 'react-router-dom'
 
 export default function MainHeader() {
   const navigate = useNavigate()
-  const { userLogin, userEmail } = useAuth()
-  const { token, login, logout } = useAuth()
+  const { userLogin, userEmail, token, login, logout } = useAuth()
   const [loginValue, setLoginValue] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
