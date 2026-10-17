@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { getLoginError, getEmailError } from '../inputValidation.js'
 
 export default function CreateNewUserPage() {
   const navigate = useNavigate()
@@ -14,6 +15,19 @@ export default function CreateNewUserPage() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+
+    // Те же проверки, что на сервере (см. inputValidation.js) — чтобы не отправлять заведомо неверные данные
+    const loginError = getLoginError(loginValue)
+    if (loginError !== null) {
+      setError(loginError)
+      return
+    }
+
+    const emailError = getEmailError(email)
+    if (emailError !== null) {
+      setError(emailError)
+      return
+    }
 
     if (password !== passwordConfirm) {
       setError('Пароли не совпадают')

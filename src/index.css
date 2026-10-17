@@ -137,6 +137,30 @@ body {
   margin-bottom: 16px;
 }
 
+/* Порядковые номера сообщения (на странице и в теме) над автором и датой */
+.message-numbers {
+  color: #999;
+  font-size: 0.8em;
+}
+
+/* Заголовок столбца таблицы, по клику на который меняется сортировка */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-header:hover {
+  background: #e8f0fe;
+}
+
+/* Пейджер на странице темы: "Назад", номер страницы, "Вперёд" в одну строку */
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+
 /* Светло-серая плашка сообщения на странице темы */
 .message-plate {
   background: #f0f0f0;

@@ -10,7 +10,7 @@ export const MESSAGES_URL = '/api/messages'
 export const GET_ALL_ROOT_MESSAGES_URL = '/api/get_all_root_messages'
 export const CREATE_NEW_MESSAGE_URL = '/api/create_new_message'
 export const DELETE_EXISTING_MESSAGE_URL = '/api/delete_existing_message'
-// Картинка CAPTCHA. На сервере этого endpoint пока нет
+// CAPTCHA: GET отдаёт JSON с новой капчей (см. getCaptcha)
 export const CAPTCHA_URL = '/api/captcha'
 
 // Ключ, под которым токен лежит в localStorage
@@ -146,9 +146,17 @@ export async function getTopic(topicId) {
   return res.json()
 }
 
-// GET MESSAGES_URL?topic_id=<topicId> -> [{"message_id", "text", "user_id", "user__login", "created_at"}, ...]
-export async function getMessages(topicId) {
-  return getJson(`${MESSAGES_URL}?topic_id=${encodeURIComponent(topicId)}`)
+// GET MESSAGES_URL?topic_id=<topicId>&from=<from>&to=<to>
+// -> [{"message_id", "parent_message_id", "t", "attachment", "attachment_name", "user_id", "user__login", "created_at", "depth"}, ...]
+// from и to — номера сообщений (с 1, включительно) среди ВСЕХ сообщений темы, упорядоченных LIFO:
+// по created_at по убыванию, затем по message_id по убыванию. № 1 — самое новое сообщение.
+// Сервер отдаёт эти сообщения в порядке дерева. Ответ, родитель которого не попал в диапазон,
+// становится корнем страницы, но depth у него — настоящая глубина в дереве темы.
+// За пределами темы сервер отдаёт пустой массив.
+export async function getMessages(topicId, from, to) {
+  return getJson(
+    `${MESSAGES_URL}?topic_id=${encodeURIComponent(topicId)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+  )
 }
 
 // GET GET_ALL_ROOT_MESSAGES_URL?topic_id=<topicId> -> только корневые сообщения темы (parent_message_id = null):
@@ -187,16 +195,54 @@ function readFileAsBase64(file) {
   })
 }
 
+// GET CAPTCHA_URL -> {"captcha_id": "<uuid>", "image": "<PNG строкой base64>"}; ответ возвращается.
+// Сервер запоминает ответ под captcha_id на 5 минут. Каждую капчу можно проверить только один раз:
+// после любой отправки сообщения (даже неудачной) нужно запросить новую.
+// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+export async function getCaptcha() {
+  const res = await fetch(CAPTCHA_URL)
+  if (!res.ok) {
+    let message = `${res.status} ${res.statusText}`
+    try {
+      const data = await res.json()
+      if (data.error) message = data.error
+    } catch {
+      // Тело ответа не JSON — оставляем статус
+    }
+    throw new Error(message)
+  }
+  return res.json()
+}
+
 // POST на CREATE_NEW_MESSAGE_URL с заголовком Authorization: Bearer <token из localStorage>. Тело:
 // {"login": "...", "email": "...", "topic_id": 1, "parent_message_id": null | 1, "t": "...",
-//  "attachment": "<base64>" | null, "attachment_name": "photo.png" | null}
+//  "attachment": "<base64>" | null, "attachment_name": "photo.png" | null,
+//  "site": "https://..." | null, "captcha_id": "<uuid>", "captcha": "123"}
 // Автора сервер берёт из токена.
+// site — Home page из формы, необязательное. Пустая строка (поле не заполнено) явно отправляется как null.
+// captchaId — из getCaptcha, captcha — введённое пользователем число. Оба обязательны.
+// Сервер помечает капчу использованной сразу, даже если потом отклонит запрос.
 // topicId и parentMessageId должны быть числами (parentMessageId может быть null) — сервер строки не принимает.
 // attachmentFile — объект File или null. Файл передаётся строкой base64 в поле "attachment",
 // его имя — в "attachment_name"; без файла оба поля null.
 // -> {"message_id", "parent_message_id", "topic_id", "user_id", "t", "created_at"}; ответ возвращается.
 // При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
-export async function createNewMessage(loginValue, email, topicId, parentMessageId, t, attachmentFile) {
+export async function createNewMessage(
+  loginValue,
+  email,
+  topicId,
+  parentMessageId,
+  t,
+  attachmentFile,
+  site,
+  captchaId,
+  captcha,
+) {
+  let siteValue = null
+  if (site !== '') {
+    siteValue = site
+  }
+
   let attachmentBase64 = null
   let attachmentName = null
   if (attachmentFile !== null) {
@@ -219,6 +265,9 @@ export async function createNewMessage(loginValue, email, topicId, parentMessage
       t: t,
       attachment: attachmentBase64,
       attachment_name: attachmentName,
+      site: siteValue,
+      captcha_id: captchaId,
+      captcha: captcha,
     }),
   })
   throwIfSessionExpired(res)

@@ -1,13 +1,13 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { CAPTCHA_URL } from '../api.js'
+import { getCaptcha } from '../api.js'
 import { isMessageCorrect } from '../messageMarkup.js'
 
 // Модальный диалог ввода сообщения.
 // Пропсы:
 //   parentMessageId                                                       — message_id сообщения, на которое пишется ответ;
 //                                                                           null — новое корневое сообщение
-//   onSubmit({ parent_message_id, login, email, home_page, captcha, text, attachment }) — вызывается по кнопке "Отправить";
+//   onSubmit({ parent_message_id, login, email, home_page, captcha_id, captcha, text, attachment }) — вызывается по кнопке "Отправить";
 //                                                                           attachment — объект File или null, если файл не выбран
 //   onClose()                                                             — вызывается по кнопке "Отмена" и по клику на затемнённый фон
 // Диалог открывается только для вошедшего пользователя (см. TopicPage).
@@ -18,6 +18,11 @@ export default function EnterMessage({ parentMessageId, onSubmit, onClose }) {
   const { userLogin, userEmail } = useAuth()
 
   const [error, setError] = useState(null)
+  // Текущая CAPTCHA с сервера: {"captcha_id", "image"}. null — ещё не загружена или загрузка не удалась
+  const [captcha, setCaptcha] = useState(null)
+  const [captchaError, setCaptchaError] = useState(null)
+  // Ссылка на поле ответа CAPTCHA: при новой капче старый ответ из него стирается
+  const captchaInputRef = useRef(null)
   // Текст из textarea для правой части (предпросмотр). textarea остаётся неуправляемой (без value),
   // на отправке текст по-прежнему берётся из формы через FormData; этот state только для показа справа
   const [previewText, setPreviewText] = useState('')
@@ -57,7 +62,27 @@ export default function EnterMessage({ parentMessageId, onSubmit, onClose }) {
     updatePreview(textarea.value)
   }
 
+  // Запрашивает новую CAPTCHA и стирает введённый ответ на старую.
+  // Вызывается при открытии диалога, по кнопке "↻" и после любой ошибки отправки:
+  // сервер помечает капчу использованной при каждой попытке, даже неудачной.
+  function loadCaptcha() {
+    setCaptcha(null)
+    setCaptchaError(null)
+    if (captchaInputRef.current !== null) {
+      captchaInputRef.current.value = ''
+    }
+    getCaptcha()
+      .then(setCaptcha)
+      .catch((e) => setCaptchaError(e.message))
+  }
+
+  // Первая капча — при открытии диалога ([] — один раз)
+  useEffect(() => {
+    loadCaptcha()
+  }, [])
+
   // onSubmit может вернуть Promise; если он завершится ошибкой, её текст показывается в диалоге
+  // и запрашивается новая CAPTCHA (старая на сервере уже использована)
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
@@ -82,12 +107,14 @@ export default function EnterMessage({ parentMessageId, onSubmit, onClose }) {
         login: formData.get('login'),
         email: formData.get('email'),
         home_page: formData.get('home_page'),
+        captcha_id: formData.get('captcha_id'),
         captcha: formData.get('captcha'),
         text: formData.get('text'),
         attachment: attachmentValue,
       })
     } catch (err) {
       setError(err.message)
+      loadCaptcha()
     }
   }
 
@@ -124,9 +151,14 @@ export default function EnterMessage({ parentMessageId, onSubmit, onClose }) {
         <label className="form-field">
           <span>CAPTCHA <span className="required-mark">*</span></span>
           <div className="captcha-row">
-            <input type="text" name="captcha" required={true} />
-            <img src={CAPTCHA_URL} alt="CAPTCHA" />
+            <input ref={captchaInputRef} type="text" name="captcha" required={true} />
+            {/* captcha_id уходит на сервер вместе с ответом. Пока капча не загружена — пустая строка,
+                и сервер отклонит отправку */}
+            <input type="hidden" name="captcha_id" value={captcha !== null ? captcha.captcha_id : ''} />
+            {captcha !== null && <img src={`data:image/png;base64,${captcha.image}`} alt="CAPTCHA" />}
+            <button type="button" onClick={loadCaptcha} title="Другая картинка">↻</button>
           </div>
+          {captchaError && <span className="error">Не удалось загрузить CAPTCHA: {captchaError}</span>}
         </label>
 
         {/* Слева — ввод текста, справа — предпросмотр только для чтения */}
