@@ -194,6 +194,13 @@ body {
   gap: 8px;
 }
 
+/* "автор дата" темы в одной строке с заголовком h2 на странице темы */
+.topic-meta {
+  font-size: 14px;
+  font-weight: normal;
+  color: #666;
+}
+
 /* Строка "автор дата" над текстом сообщения */
 .message-header {
   color: #666;

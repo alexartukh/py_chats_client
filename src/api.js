@@ -5,6 +5,7 @@ export const LOGIN_URL = '/api/login'
 export const LOGOUT_URL = '/api/logout'
 export const CREATE_NEW_USER_URL = '/api/create_new_user'
 export const CREATE_NEW_TOPIC_URL = '/api/create_new_topic'
+export const TOPIC_URL = '/api/topic'
 export const MESSAGES_URL = '/api/messages'
 export const CREATE_NEW_MESSAGE_URL = '/api/create_new_message'
 export const DELETE_EXISTING_MESSAGE_URL = '/api/delete_existing_message'
@@ -125,6 +126,23 @@ export async function createNewTopic(title) {
     }
     throw new Error(message)
   }
+}
+
+// GET TOPIC_URL?topic_id=<topicId> -> {"topic_id", "title", "created_by_user__login", "created_at"}; ответ возвращается.
+// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+export async function getTopic(topicId) {
+  const res = await fetch(`${TOPIC_URL}?topic_id=${encodeURIComponent(topicId)}`)
+  if (!res.ok) {
+    let message = `${res.status} ${res.statusText}`
+    try {
+      const data = await res.json()
+      if (data.error) message = data.error
+    } catch {
+      // Тело ответа не JSON — оставляем статус
+    }
+    throw new Error(message)
+  }
+  return res.json()
 }
 
 // GET MESSAGES_URL?topic_id=<topicId> -> [{"message_id", "text", "user_id", "user__login", "created_at"}, ...]

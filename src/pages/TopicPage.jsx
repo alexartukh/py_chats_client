@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { getMessages, createNewMessage, deleteExistingMessage } from '../api.js'
+import { getTopic, getMessages, createNewMessage, deleteExistingMessage } from '../api.js'
 import EnterMessage from '../components/EnterMessage.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -8,6 +8,9 @@ export default function TopicPage() {
   // topicId берётся из адреса /topic/:topicId (см. App.jsx)
   const { topicId } = useParams()
   const { token, userLogin } = useAuth()
+  // Тема: {"topic_id", "title", "created_by_user__login", "created_at"}. null — ещё не загружена
+  const [topic, setTopic] = useState(null)
+  const [topicError, setTopicError] = useState(null)
   const [messages, setMessages] = useState([])
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -56,6 +59,11 @@ export default function TopicPage() {
   // Удаляет сообщение (сервер удаляет и все ответы на него) и перезагружает список.
   // Ошибка показывается над списком сообщений.
   async function handleDeleteMessage(messageId) {
+    // window.confirm — встроенный диалог браузера: true при "OK", false при "Отмена"
+    const isConfirmed = window.confirm('Удалить сообщение и все ответы на него?')
+    if (!isConfirmed) {
+      return
+    }
     setError(null)
     try {
       await deleteExistingMessage(messageId)
@@ -65,15 +73,44 @@ export default function TopicPage() {
     }
   }
 
+  function loadTopic() {
+    setTopic(null)
+    setTopicError(null)
+    getTopic(topicId)
+      .then(setTopic)
+      .catch((e) => setTopicError(e.message))
+  }
+
   useEffect(() => {
+    loadTopic()
     loadMessages()
   }, [topicId])
 
   return (
     <div className="column">
-      <h2>Тема #{topicId}</h2>
+
+      <h2>
+        Тема #{topicId}
+        {topic !== null && (
+          <>
+            : {topic.title}{' '}
+            <span className="topic-meta">
+              <b>{topic.created_by_user__login}</b> {topic.created_at}
+            </span>
+          </>
+        )}
+      </h2>
+
+      {topicError && <p className="error">Ошибка: {topicError}</p>}
       {loading && <p>Загрузка...</p>}
       {error && <p className="error">Ошибка: {error}</p>}
+      {/* Только после загрузки и без ошибки: иначе пустой список означает "ещё не загрузили" или "не смогли загрузить" */}
+      {!loading && !error && messages.length === 0 && <p>Сообщений пока нет</p>}
+      
+      {token && (
+        <button type="button" onClick={() => openEnterMessage(null)}>Добавить корневой</button>
+      )}
+      
       {messages.map((message) => (
         // depth: 0 — сообщение верхнего уровня, 1 — ответ на него и т.д. Отступ 20px на каждый уровень
         <div
@@ -98,9 +135,11 @@ export default function TopicPage() {
         </div>
       ))}
       {/* Новое корневое сообщение: parentMessageId = null. Только для вошедшего пользователя */}
+      
       {token && (
         <button type="button" onClick={() => openEnterMessage(null)}>Добавить корневой</button>
       )}
+      
       {isEnterMessageOpen && (
         <EnterMessage
           parentMessageId={parentMessageId}
