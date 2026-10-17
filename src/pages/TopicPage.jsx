@@ -1,21 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { getMessages } from '../api.js'
-import { useAuth } from '../context/AuthContext.jsx'
 import EnterMessage from '../components/EnterMessage.jsx'
 
 export default function TopicPage() {
   // topicId берётся из адреса /topic/:topicId (см. App.jsx)
   const { topicId } = useParams()
-  const { token } = useAuth()
   const [messages, setMessages] = useState([])
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
   // Сообщение, на которое пишется комментарий. null — диалог закрыт
   const [replyToMessage, setReplyToMessage] = useState(null)
 
-  // Пока без вызова сервера: диалог просто закрывается
-  function handleSubmitComment(text) {
+  // Пока без вызова сервера: диалог просто закрывается.
+  // comment = { login, email, home_page, captcha, text } — см. EnterMessage
+  function handleSubmitComment(comment) {
     setReplyToMessage(null)
   }
 
@@ -46,9 +45,7 @@ export default function TopicPage() {
             </div>
             <div>{message.t}</div>
           </div>
-          {token && (
-            <button type="button" onClick={() => setReplyToMessage(message)}>Комментировать</button>
-          )}
+          <button type="button" onClick={() => setReplyToMessage(message)}>Комментировать</button>
         </div>
       ))}
       {replyToMessage && (

@@ -159,6 +159,34 @@ body {
   resize: vertical;
 }
 
+/* Поле формы: подпись сверху, под ней значение или инпут */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-field input:not([type="hidden"]) {
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+/* Красная звёздочка у обязательного поля */
+.required-mark {
+  color: #c00;
+}
+
+/* Поле CAPTCHA слева, картинка справа */
+.captcha-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.captcha-row input {
+  flex: 1;
+}
+
 /* Кнопки диалога справа */
 .modal-buttons {
   display: flex;

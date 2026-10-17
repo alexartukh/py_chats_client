@@ -22,6 +22,7 @@ export default function UsersList() {
         <thead>
           <tr>
             <th>Логин</th>
+            <th>Почта</th>
             <th>Создан</th>
           </tr>
         </thead>
@@ -29,6 +30,7 @@ export default function UsersList() {
           {users.map((user) => (
             <tr key={user.user_id}>
               <td>{user.login}</td>
+              <td>{user.email}</td>
               <td>{user.created_at}</td>
             </tr>
           ))}

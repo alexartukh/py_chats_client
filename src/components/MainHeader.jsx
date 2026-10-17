@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'
 
 export default function MainHeader() {
   const navigate = useNavigate()
-  const { userLogin } = useAuth()
+  const { userLogin, userEmail } = useAuth()
   const { token, login, logout } = useAuth()
   const [loginValue, setLoginValue] = useState('')
   const [password, setPassword] = useState('')
@@ -34,10 +34,10 @@ export default function MainHeader() {
 
   return (
     <header className="main-header">
-      <h2><Link to="/">TEST FORUM</Link></h2>
+      <h2><Link to="/">MyForum</Link></h2>
       {token ? (
         <div>
-          {userLogin} <button type="button" onClick={handleLogout}>Выйти</button>
+          {userLogin} ({userEmail}) &nbsp; <button type="button" onClick={handleLogout}>Выйти</button>
         </div>
       ) : (
         <form onSubmit={handleLogin}>

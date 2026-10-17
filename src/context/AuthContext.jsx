@@ -1,36 +1,64 @@
 import { createContext, useContext, useState } from 'react'
-import { TOKEN_STORAGE_KEY, LOGIN_STORAGE_KEY, login as apiLogin, logout as apiLogout } from '../api.js'
+import {
+  TOKEN_STORAGE_KEY,
+  LOGIN_STORAGE_KEY,
+  EMAIL_STORAGE_KEY,
+  login as apiLogin,
+  logout as apiLogout,
+  createNewUser as apiCreateNewUser,
+} from '../api.js'
 
-// Общее состояние входа: токен, логин пользователя и функции login/logout.
-// Токен и логин хранятся и в state (чтобы компоненты перерисовывались), и в localStorage (чтобы пережить перезагрузку страницы).
+// Общее состояние входа: токен, логин и email пользователя и функции login/logout/createNewUser.
+// Они хранятся и в state (чтобы компоненты перерисовывались), и в localStorage (чтобы пережить перезагрузку страницы).
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem(TOKEN_STORAGE_KEY))
   const [userLogin, setUserLogin] = useState(localStorage.getItem(LOGIN_STORAGE_KEY))
+  const [userEmail, setUserEmail] = useState(localStorage.getItem(EMAIL_STORAGE_KEY))
 
-  // api.login сохраняет токен и логин в localStorage, здесь они кладутся в state
+  // api.login сохраняет токен, логин и email в localStorage, здесь они кладутся в state
   async function login(loginValue, password) {
-    const newToken = await apiLogin(loginValue, password)
-    setToken(newToken)
-    setUserLogin(loginValue)
+    const data = await apiLogin(loginValue, password)
+    setToken(data.token)
+    setUserLogin(data.login)
+    setUserEmail(data.email)
   }
 
-  // state очищается сразу; api.logout удаляет токен и логин из localStorage и вызывает сервер
+  // state очищается сразу; api.logout удаляет токен, логин и email из localStorage и вызывает сервер
   async function logout() {
     setToken(null)
     setUserLogin(null)
+    setUserEmail(null)
     await apiLogout()
   }
 
+  // Регистрация. Сервер сразу возвращает токен, поэтому пользователь после неё уже вошёл.
+  // api.createNewUser сохраняет токен, логин и email в localStorage, здесь они кладутся в state
+  async function createNewUser(loginValue, email, password) {
+    const data = await apiCreateNewUser(loginValue, email, password)
+    setToken(data.token)
+    setUserLogin(data.login)
+    setUserEmail(data.email)
+  }
+
   return (
-    <AuthContext.Provider value={{ token: token, userLogin: userLogin, login: login, logout: logout }}>
+    <AuthContext.Provider
+      value={{
+        token: token,
+        userLogin: userLogin,
+        userEmail: userEmail,
+        login: login,
+        logout: logout,
+        createNewUser: createNewUser,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
 }
 
-// Возвращает { token, userLogin, login, logout }. Работает только внутри <AuthProvider>.
+// Возвращает { token, userLogin, userEmail, login, logout, createNewUser }. Работает только внутри <AuthProvider>.
 export function useAuth() {
   return useContext(AuthContext)
 }

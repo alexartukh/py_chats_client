@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createNewUser } from '../api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export default function CreateNewUserPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { createNewUser } = useAuth()
   const [loginValue, setLoginValue] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [error, setError] = useState(null)
@@ -21,9 +21,8 @@ export default function CreateNewUserPage() {
     }
 
     try {
-      await createNewUser(loginValue, password)
-      // Сразу входим созданным пользователем
-      await login(loginValue, password)
+      // Сервер в ответе возвращает токен — после этого пользователь уже вошёл
+      await createNewUser(loginValue, email, password)
       navigate('/')
     } catch (err) {
       setError(err.message)
@@ -40,6 +39,13 @@ export default function CreateNewUserPage() {
           placeholder="Логин"
           value={loginValue}
           onChange={(e) => setLoginValue(e.target.value)}
+        />
+        <input
+          type="text"
+          name="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
         <input
           type="password"
