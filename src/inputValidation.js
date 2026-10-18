@@ -1,5 +1,6 @@
-// Проверки полей формы — те же правила, что на сервере (C:\PRO\Django\request_check_helper.py:
-// get_required_login и get_required_email). Если правила на сервере поменяются, менять и здесь.
+// Проверки полей формы — те же правила, что на сервере. Если правила на сервере поменяются, менять и здесь:
+//   getLoginError, getEmailError — C:\PRO\Django\request_check_helper.py (get_required_login, get_required_email)
+//   getAttachmentError           — C:\PRO\Django\messages_helper.py (decode_attachment)
 //
 // Каждая функция возвращает текст ошибки или null, если значение правильное.
 
@@ -35,5 +36,51 @@ export function getEmailError(email) {
   if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) === false) {
     return 'Email должен быть адресом вида name@example.com'
   }
+  return null
+}
+
+// Разрешённые расширения файла к сообщению (по ТЗ: JPG, GIF, PNG, TXT)
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.gif', '.png']
+const TEXT_EXTENSIONS = ['.txt']
+
+// Максимальный размер текстового файла (по ТЗ: 100 КБ) — в байтах, как на сервере
+const MAX_TEXT_FILE_SIZE = 100 * 1024
+
+// Максимальная длина имени файла — как у колонки messages.attachment_name VARCHAR(255)
+const MAX_ATTACHMENT_NAME_LENGTH = 255
+
+// Файл к сообщению (объект File). Проверяется то, что можно узнать без чтения содержимого:
+// длина имени, расширение (без учёта регистра) и размер .txt.
+// Не проверяется: что картинка действительно JPG/GIF/PNG по первым байтам — это делает сервер.
+// Размер картинки не ограничен: большую сервер уменьшит до 320×240.
+export function getAttachmentError(file) {
+  if (file.name.length > MAX_ATTACHMENT_NAME_LENGTH) {
+    return 'Имя файла длиннее 255 символов'
+  }
+
+  const lowerName = file.name.toLowerCase()
+
+  let isImage = false
+  for (const extension of IMAGE_EXTENSIONS) {
+    if (lowerName.endsWith(extension)) {
+      isImage = true
+    }
+  }
+
+  let isText = false
+  for (const extension of TEXT_EXTENSIONS) {
+    if (lowerName.endsWith(extension)) {
+      isText = true
+    }
+  }
+
+  if (!isImage && !isText) {
+    return 'Файл должен быть .jpg, .jpeg, .gif, .png или .txt'
+  }
+
+  if (isText && file.size > MAX_TEXT_FILE_SIZE) {
+    return 'Текстовый файл должен быть не больше 100 КБ'
+  }
+
   return null
 }

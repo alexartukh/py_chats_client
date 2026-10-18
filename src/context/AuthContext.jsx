@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   TOKEN_STORAGE_KEY,
   LOGIN_STORAGE_KEY,
@@ -18,14 +19,20 @@ export function AuthProvider({ children }) {
   const [userLogin, setUserLogin] = useState(localStorage.getItem(LOGIN_STORAGE_KEY))
   const [userEmail, setUserEmail] = useState(localStorage.getItem(EMAIL_STORAGE_KEY))
 
+  // useNavigate работает здесь, потому что AuthProvider стоит внутри BrowserRouter (main.jsx)
+  const navigate = useNavigate()
+
   // Когда защищённый запрос получил 401, api.js сам чистит localStorage и вызывает эту функцию,
-  // а здесь очищается state. Регистрируется один раз, после первой отрисовки AuthProvider ([] в зависимостях).
+  // а здесь очищается state и открывается главная страница (как при обычном выходе): так закрываются
+  // открытые диалоги и защищённые страницы.
+  // Регистрируется один раз, после первой отрисовки AuthProvider ([] в зависимостях).
   // Не снимается: AuthProvider обёрнут вокруг всего приложения в main.jsx и не размонтируется.
   useEffect(() => {
     setSessionExpiredHandler(() => {
       setToken(null)
       setUserLogin(null)
       setUserEmail(null)
+      navigate('/')
     })
   }, [])
 

@@ -3,9 +3,11 @@ import { useParams } from 'react-router-dom'
 import { getTopic, getMessages, createNewMessage, deleteExistingMessage } from '../api.js'
 import EnterMessage from '../components/EnterMessage.jsx'
 import MessageAttachment from '../components/MessageAttachment.jsx'
+import Lightbox from '../components/Lightbox.jsx'
 import RootMessages from '../components/RootMessages.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { isMessageCorrect } from '../messageMarkup.js'
+import { formatDateTime } from '../dateFormat.js'
 
 // Сколько сообщений на одной странице (по ТЗ — 25)
 const MESSAGES_PER_PAGE = 25
@@ -24,6 +26,17 @@ export default function TopicPage() {
   const [isEnterMessageOpen, setIsEnterMessageOpen] = useState(false)
   // message_id сообщения, на которое пишется ответ. null — новое корневое сообщение
   const [parentMessageId, setParentMessageId] = useState(null)
+  // Картинка, открытая в Lightbox: { src, alt }. null — Lightbox закрыт
+  const [lightboxImage, setLightboxImage] = useState(null)
+
+  // Вызывается из MessageAttachment по клику на превью картинки
+  function openLightbox(imageSrc, imageAlt) {
+    setLightboxImage({ src: imageSrc, alt: imageAlt })
+  }
+
+  function closeLightbox() {
+    setLightboxImage(null)
+  }
   // Версия таблицы корневых сообщений. Увеличивается после добавления и удаления сообщения;
   // RootMessages получает её пропом reloadVersion и при изменении загружает таблицу заново
   const [rootMessagesVersion, setRootMessagesVersion] = useState(0)
@@ -153,7 +166,7 @@ export default function TopicPage() {
           <>
             : {topic.title}{' '}
             <span className="topic-meta">
-              <b>{topic.created_by_user__login}</b> {topic.created_at}
+              <b>{topic.created_by_user__login}</b> {formatDateTime(topic.created_at)}
             </span>
           </>
         )}
@@ -209,7 +222,7 @@ export default function TopicPage() {
                 № {firstNumberOnPage - 1 + numberOnPageByMessageId[message.message_id]} в теме
               </div>
               <div className="message-header">
-                <b>{message.user__login}</b> {message.created_at}
+                <b>{message.user__login}</b> {formatDateTime(message.created_at)}
               </div>
               {/* Как в предпросмотре EnterMessage: если isMessageCorrect вернула true — текст показывается как HTML.
                   Иначе (сервер разметку не проверяет, текст мог сохраниться с ошибкой) — обычным текстом, теги видны как есть */}
@@ -223,6 +236,7 @@ export default function TopicPage() {
                 <MessageAttachment
                   attachment={message.attachment}
                   attachmentName={message.attachment_name}
+                  onImageClick={openLightbox}
                 />
               )}
             </div>
@@ -242,6 +256,14 @@ export default function TopicPage() {
         <button type="button" className="primary-button" onClick={() => openEnterMessage(null)}>Добавить корневой</button>
       )}
       
+      {lightboxImage !== null && (
+        <Lightbox
+          imageSrc={lightboxImage.src}
+          imageAlt={lightboxImage.alt}
+          onClose={closeLightbox}
+        />
+      )}
+
       {isEnterMessageOpen && (
         <EnterMessage
           parentMessageId={parentMessageId}

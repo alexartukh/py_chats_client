@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { USERS_URL, getJson } from '../api.js'
+import { formatDateTime } from '../dateFormat.js'
 
 export default function UsersList() {
   const [users, setUsers] = useState([])
@@ -31,7 +32,7 @@ export default function UsersList() {
             <tr key={user.user_id}>
               <td>{user.login}</td>
               <td>{user.email}</td>
-              <td>{user.created_at}</td>
+              <td>{formatDateTime(user.created_at)}</td>
             </tr>
           ))}
         </tbody>

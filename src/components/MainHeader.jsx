@@ -38,13 +38,15 @@ export default function MainHeader() {
     }
   }
 
+  // На главную — в любом случае, даже если запрос на /api/logout не удался:
+  // токен на клиенте уже удалён, а открытые диалоги и страницы темы должны закрыться
   async function handleLogout() {
     try {
       await logout()
-      navigate('/')
     } catch (err) {
       setError(err.message)
     }
+    navigate('/')
   }
 
   return (

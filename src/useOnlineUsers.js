@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_BASE } from './api.js'
 
 // Адрес WebSocket-соединения со списком онлайн (сервер: online.py, маршрут ws/online в app.py)
 export const ONLINE_WS_PATH = '/ws/online'
@@ -34,11 +35,17 @@ export function useOnlineUsers(token) {
       // ws:// для http, wss:// для https. Адрес тот же, что у страницы:
       // при разработке запрос уходит через proxy Vite ('/ws' в vite.config.js) на сервер Django.
       // Токен — параметром адреса: заголовок Authorization браузер для WebSocket задать не даёт
-      let protocol = 'ws:'
-      if (window.location.protocol === 'https:') {
-        protocol = 'wss:'
+      // Если задан API_BASE (сборка для хостинга), WebSocket идёт на тот же сервер: https:// -> wss://
+      let url
+      if (API_BASE !== '') {
+        url = `${API_BASE.replace(/^http/, 'ws')}${ONLINE_WS_PATH}?token=${encodeURIComponent(token)}`
+      } else {
+        let protocol = 'ws:'
+        if (window.location.protocol === 'https:') {
+          protocol = 'wss:'
+        }
+        url = `${protocol}//${window.location.host}${ONLINE_WS_PATH}?token=${encodeURIComponent(token)}`
       }
-      const url = `${protocol}//${window.location.host}${ONLINE_WS_PATH}?token=${encodeURIComponent(token)}`
       socket = new WebSocket(url)
 
       socket.onmessage = (event) => {

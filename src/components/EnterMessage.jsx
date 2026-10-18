@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getCaptcha } from '../api.js'
 import { isMessageCorrect } from '../messageMarkup.js'
+import { getAttachmentError } from '../inputValidation.js'
 
 // Модальный диалог ввода сообщения.
 // Пропсы:
@@ -101,6 +102,22 @@ export default function EnterMessage({ parentMessageId, onSubmit, onClose }) {
     if (attachmentFile.name !== '') {
       attachmentValue = attachmentFile
     }
+
+    // Проверки на клиенте — те же правила, что на сервере. При ошибке запрос не отправляется,
+    // поэтому CAPTCHA не сгорает и новую запрашивать не нужно
+    if (!isMessageCorrect(formData.get('text'))) {
+      setError('Ошибка в разметке текста: разрешены только <i>, <strong>, <code> и <a href="" title="">, все теги должны быть закрыты')
+      return
+    }
+
+    if (attachmentValue !== null) {
+      const attachmentError = getAttachmentError(attachmentValue)
+      if (attachmentError !== null) {
+        setError(attachmentError)
+        return
+      }
+    }
+
     try {
       await onSubmit({
         parent_message_id: parentMessageIdValue,

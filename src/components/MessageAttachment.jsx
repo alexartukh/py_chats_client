@@ -2,7 +2,8 @@
 // Пропсы:
 //   attachment     — содержимое файла строкой base64 (как отдаёт /api/messages)
 //   attachmentName — имя файла, по его расширению выбирается, как показывать
-// Картинка (.jpg, .jpeg, .gif, .png) показывается через <img>, текст (.txt) — в <pre>.
+//   onImageClick(imageSrc, attachmentName) — вызывается по клику на картинку (TopicPage открывает Lightbox)
+// Картинка (.jpg, .jpeg, .gif, .png) показывается через <img> уменьшенной (превью, не больше 160×120), текст (.txt) — в <pre>.
 // Для других расширений показывается только имя.
 
 // Тип содержимого для data:-адреса картинки, по расширению файла
@@ -34,13 +35,22 @@ function decodeBase64AsUtf8Text(base64) {
   return new TextDecoder('utf-8').decode(bytes)
 }
 
-export default function MessageAttachment({ attachment, attachmentName }) {
+export default function MessageAttachment({ attachment, attachmentName, onImageClick }) {
   const extension = getExtension(attachmentName)
   const imageMimeType = IMAGE_MIME_TYPES[extension]
 
   let content = null
   if (imageMimeType !== undefined) {
-    content = <img src={`data:${imageMimeType};base64,${attachment}`} alt={attachmentName} />
+    const imageSrc = `data:${imageMimeType};base64,${attachment}`
+    content = (
+      <img
+        className="attachment-preview"
+        src={imageSrc}
+        alt={attachmentName}
+        title="Открыть"
+        onClick={() => onImageClick(imageSrc, attachmentName)}
+      />
+    )
   } else if (extension === '.txt') {
     content = <pre>{decodeBase64AsUtf8Text(attachment)}</pre>
   }

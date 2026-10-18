@@ -1,17 +1,21 @@
+// Адрес сервера. Локально пустой: запросы /api/... идут через proxy Vite (vite.config.js).
+// При сборке для хостинга задаётся переменной VITE_API_BASE, например https://py-chats.onrender.com
+export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+
 // Адреса API сервера (http://localhost:8000). Поменяй, если у тебя другие.
-export const USERS_URL = '/api/users'
-export const TOPICS_URL = '/api/topics'
-export const LOGIN_URL = '/api/login'
-export const LOGOUT_URL = '/api/logout'
-export const CREATE_NEW_USER_URL = '/api/create_new_user'
-export const CREATE_NEW_TOPIC_URL = '/api/create_new_topic'
-export const TOPIC_URL = '/api/topic'
-export const MESSAGES_URL = '/api/messages'
-export const GET_ALL_ROOT_MESSAGES_URL = '/api/get_all_root_messages'
-export const CREATE_NEW_MESSAGE_URL = '/api/create_new_message'
-export const DELETE_EXISTING_MESSAGE_URL = '/api/delete_existing_message'
+export const USERS_URL = API_BASE + '/api/users'
+export const TOPICS_URL = API_BASE + '/api/topics'
+export const LOGIN_URL = API_BASE + '/api/login'
+export const LOGOUT_URL = API_BASE + '/api/logout'
+export const CREATE_NEW_USER_URL = API_BASE + '/api/create_new_user'
+export const CREATE_NEW_TOPIC_URL = API_BASE + '/api/create_new_topic'
+export const TOPIC_URL = API_BASE + '/api/topic'
+export const MESSAGES_URL = API_BASE + '/api/messages'
+export const GET_ALL_ROOT_MESSAGES_URL = API_BASE + '/api/get_all_root_messages'
+export const CREATE_NEW_MESSAGE_URL = API_BASE + '/api/create_new_message'
+export const DELETE_EXISTING_MESSAGE_URL = API_BASE + '/api/delete_existing_message'
 // CAPTCHA: GET отдаёт JSON с новой капчей (см. getCaptcha)
-export const CAPTCHA_URL = '/api/captcha'
+export const CAPTCHA_URL = API_BASE + '/api/captcha'
 
 // Ключ, под которым токен лежит в localStorage
 export const TOKEN_STORAGE_KEY = 'token'
@@ -22,6 +26,58 @@ export const EMAIL_STORAGE_KEY = 'email'
 
 // Текст ошибки, когда защищённый запрос получил 401
 export const SESSION_EXPIRED_MESSAGE = 'Сессия истекла, войдите снова'
+
+// Текст ошибки, когда запрос не дошёл до сервера (сервер выключен, нет сети, запрет CORS)
+export const SERVER_UNAVAILABLE_MESSAGE = 'Сервер недоступен. Проверьте, что он запущен, и повторите'
+
+// fetch, который при сетевой ошибке выбрасывает понятный текст SERVER_UNAVAILABLE_MESSAGE.
+// Обычный fetch в этом случае выбрасывает TypeError с текстом вроде "Failed to fetch".
+// Ответы с кодом ошибки (4xx, 5xx) fetch ошибкой не считает — их разбирает readErrorMessage.
+async function apiFetch(url, options) {
+  try {
+    return await fetch(url, options)
+  } catch {
+    throw new Error(SERVER_UNAVAILABLE_MESSAGE)
+  }
+}
+
+// Текст ошибки для ответа с кодом ошибки (res.ok === false).
+// Если сервер прислал JSON {"error": "..."} — берётся его текст (он точнее: например, "captcha answer is wrong").
+// Иначе (тело не JSON: страница ошибки Django, пустой ответ proxy Vite при выключенном сервере) — текст по коду ответа.
+async function readErrorMessage(res) {
+  try {
+    const data = await res.json()
+    if (typeof data.error === 'string' && data.error !== '') {
+      return data.error
+    }
+  } catch {
+    // Тело ответа не JSON — текст выбирается по коду ниже
+  }
+
+  if (res.status === 400) {
+    return 'Сервер не принял данные (400)'
+  }
+  if (res.status === 401) {
+    return 'Нужно войти (401)'
+  }
+  if (res.status === 403) {
+    return 'Нет прав на это действие (403)'
+  }
+  if (res.status === 404) {
+    return 'Не найдено (404)'
+  }
+  if (res.status === 409) {
+    return 'Такие данные уже есть (409)'
+  }
+  if (res.status === 413) {
+    return 'Слишком большой запрос, например файл (413)'
+  }
+  if (res.status >= 500) {
+    // proxy Vite отвечает 500 с пустым телом, если сервер Django не запущен
+    return `Ошибка на сервере или сервер не запущен (${res.status})`
+  }
+  return `Ошибка запроса (${res.status})`
+}
 
 // Функция, которую api.js вызывает, когда защищённый запрос получил 401.
 // Её устанавливает AuthContext через setSessionExpiredHandler, чтобы сбросить состояние входа.
@@ -51,13 +107,16 @@ function throwIfSessionExpired(res) {
 // POST {"login": "...", "password": "..."} -> {"token": "...", "login": "...", "email": "..."}.
 // При успехе в localStorage сохраняются токен, логин и email из ответа сервера; ответ возвращается.
 export async function login(loginValue, password) {
-  const res = await fetch(LOGIN_URL, {
+  const res = await apiFetch(LOGIN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ login: loginValue, password: password }),
   })
+  // Сначала проверяется код ответа, потом читается JSON: у ответа с ошибкой тела может не быть вовсе
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res))
+  }
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error ?? `${res.status} ${res.statusText}`)
   localStorage.setItem(TOKEN_STORAGE_KEY, data.token)
   localStorage.setItem(LOGIN_STORAGE_KEY, data.login)
   localStorage.setItem(EMAIL_STORAGE_KEY, data.email)
@@ -71,7 +130,7 @@ export async function logout() {
   localStorage.removeItem(TOKEN_STORAGE_KEY)
   localStorage.removeItem(LOGIN_STORAGE_KEY)
   localStorage.removeItem(EMAIL_STORAGE_KEY)
-  await fetch(LOGOUT_URL, {
+  await apiFetch(LOGOUT_URL, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   })
@@ -80,22 +139,15 @@ export async function logout() {
 // POST {"login": "...", "email": "...", "password": "..."} на CREATE_NEW_USER_URL
 // -> {"token": "...", "login": "...", "email": "..."}.
 // При успехе в localStorage сохраняются токен, логин и email из ответа сервера; ответ возвращается.
-// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+// При ошибке текст — из readErrorMessage (или SERVER_UNAVAILABLE_MESSAGE, если сервер недоступен).
 export async function createNewUser(loginValue, email, password) {
-  const res = await fetch(CREATE_NEW_USER_URL, {
+  const res = await apiFetch(CREATE_NEW_USER_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ login: loginValue, email: email, password: password }),
   })
   if (!res.ok) {
-    let message = `${res.status} ${res.statusText}`
-    try {
-      const data = await res.json()
-      if (data.error) message = data.error
-    } catch {
-      // Тело ответа не JSON — оставляем статус
-    }
-    throw new Error(message)
+    throw new Error(await readErrorMessage(res))
   }
   const data = await res.json()
   localStorage.setItem(TOKEN_STORAGE_KEY, data.token)
@@ -105,10 +157,10 @@ export async function createNewUser(loginValue, email, password) {
 }
 
 // POST {"title": "..."} на CREATE_NEW_TOPIC_URL с заголовком Authorization: Bearer <token из localStorage>.
-// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+// При ошибке текст — из readErrorMessage (или SERVER_UNAVAILABLE_MESSAGE, если сервер недоступен).
 export async function createNewTopic(title) {
   const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-  const res = await fetch(CREATE_NEW_TOPIC_URL, {
+  const res = await apiFetch(CREATE_NEW_TOPIC_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -118,30 +170,16 @@ export async function createNewTopic(title) {
   })
   throwIfSessionExpired(res)
   if (!res.ok) {
-    let message = `${res.status} ${res.statusText}`
-    try {
-      const data = await res.json()
-      if (data.error) message = data.error
-    } catch {
-      // Тело ответа не JSON — оставляем статус
-    }
-    throw new Error(message)
+    throw new Error(await readErrorMessage(res))
   }
 }
 
 // GET TOPIC_URL?topic_id=<topicId> -> {"topic_id", "title", "created_by_user__login", "created_at"}; ответ возвращается.
-// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+// При ошибке текст — из readErrorMessage (или SERVER_UNAVAILABLE_MESSAGE, если сервер недоступен).
 export async function getTopic(topicId) {
-  const res = await fetch(`${TOPIC_URL}?topic_id=${encodeURIComponent(topicId)}`)
+  const res = await apiFetch(`${TOPIC_URL}?topic_id=${encodeURIComponent(topicId)}`)
   if (!res.ok) {
-    let message = `${res.status} ${res.statusText}`
-    try {
-      const data = await res.json()
-      if (data.error) message = data.error
-    } catch {
-      // Тело ответа не JSON — оставляем статус
-    }
-    throw new Error(message)
+    throw new Error(await readErrorMessage(res))
   }
   return res.json()
 }
@@ -162,18 +200,11 @@ export async function getMessages(topicId, from, to) {
 // GET GET_ALL_ROOT_MESSAGES_URL?topic_id=<topicId> -> только корневые сообщения темы (parent_message_id = null):
 // [{"message_id", "parent_message_id", "t", "attachment", "attachment_name", "user_id", "user__login", "created_at", "depth"}, ...]
 // Сервер сортирует их от старых к новым.
-// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+// При ошибке текст — из readErrorMessage (или SERVER_UNAVAILABLE_MESSAGE, если сервер недоступен).
 export async function getAllRootMessages(topicId) {
-  const res = await fetch(`${GET_ALL_ROOT_MESSAGES_URL}?topic_id=${encodeURIComponent(topicId)}`)
+  const res = await apiFetch(`${GET_ALL_ROOT_MESSAGES_URL}?topic_id=${encodeURIComponent(topicId)}`)
   if (!res.ok) {
-    let message = `${res.status} ${res.statusText}`
-    try {
-      const data = await res.json()
-      if (data.error) message = data.error
-    } catch {
-      // Тело ответа не JSON — оставляем статус
-    }
-    throw new Error(message)
+    throw new Error(await readErrorMessage(res))
   }
   return res.json()
 }
@@ -198,18 +229,11 @@ function readFileAsBase64(file) {
 // GET CAPTCHA_URL -> {"captcha_id": "<uuid>", "image": "<PNG строкой base64>"}; ответ возвращается.
 // Сервер запоминает ответ под captcha_id на 5 минут. Каждую капчу можно проверить только один раз:
 // после любой отправки сообщения (даже неудачной) нужно запросить новую.
-// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+// При ошибке текст — из readErrorMessage (или SERVER_UNAVAILABLE_MESSAGE, если сервер недоступен).
 export async function getCaptcha() {
-  const res = await fetch(CAPTCHA_URL)
+  const res = await apiFetch(CAPTCHA_URL)
   if (!res.ok) {
-    let message = `${res.status} ${res.statusText}`
-    try {
-      const data = await res.json()
-      if (data.error) message = data.error
-    } catch {
-      // Тело ответа не JSON — оставляем статус
-    }
-    throw new Error(message)
+    throw new Error(await readErrorMessage(res))
   }
   return res.json()
 }
@@ -226,7 +250,7 @@ export async function getCaptcha() {
 // attachmentFile — объект File или null. Файл передаётся строкой base64 в поле "attachment",
 // его имя — в "attachment_name"; без файла оба поля null.
 // -> {"message_id", "parent_message_id", "topic_id", "user_id", "t", "created_at"}; ответ возвращается.
-// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+// При ошибке текст — из readErrorMessage (или SERVER_UNAVAILABLE_MESSAGE, если сервер недоступен).
 export async function createNewMessage(
   loginValue,
   email,
@@ -251,7 +275,7 @@ export async function createNewMessage(
   }
 
   const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-  const res = await fetch(CREATE_NEW_MESSAGE_URL, {
+  const res = await apiFetch(CREATE_NEW_MESSAGE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -272,14 +296,7 @@ export async function createNewMessage(
   })
   throwIfSessionExpired(res)
   if (!res.ok) {
-    let message = `${res.status} ${res.statusText}`
-    try {
-      const data = await res.json()
-      if (data.error) message = data.error
-    } catch {
-      // Тело ответа не JSON — оставляем статус
-    }
-    throw new Error(message)
+    throw new Error(await readErrorMessage(res))
   }
   return res.json()
 }
@@ -288,10 +305,10 @@ export async function createNewMessage(
 // messageId должен быть числом — сервер строки не принимает.
 // Сервер удаляет только своё сообщение и вместе с ним все ответы на него.
 // Тело успешного ответа не читается.
-// При ошибке текст берётся из поля "error" ответа, если ответ — JSON, иначе из статуса.
+// При ошибке текст — из readErrorMessage (или SERVER_UNAVAILABLE_MESSAGE, если сервер недоступен).
 export async function deleteExistingMessage(messageId) {
   const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-  const res = await fetch(DELETE_EXISTING_MESSAGE_URL, {
+  const res = await apiFetch(DELETE_EXISTING_MESSAGE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -301,20 +318,16 @@ export async function deleteExistingMessage(messageId) {
   })
   throwIfSessionExpired(res)
   if (!res.ok) {
-    let message = `${res.status} ${res.statusText}`
-    try {
-      const data = await res.json()
-      if (data.error) message = data.error
-    } catch {
-      // Тело ответа не JSON — оставляем статус
-    }
-    throw new Error(message)
+    throw new Error(await readErrorMessage(res))
   }
 }
 
 // GET url -> JSON-массив (сервер всегда отдаёт list()); ответ возвращается как есть.
+// При ошибке текст — из readErrorMessage (или SERVER_UNAVAILABLE_MESSAGE, если сервер недоступен).
 export async function getJson(url) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  const res = await apiFetch(url)
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res))
+  }
   return res.json()
 }

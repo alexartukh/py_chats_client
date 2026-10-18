@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TOPICS_URL, getJson } from '../api.js'
+import { formatDateTime } from '../dateFormat.js'
 
 export default function TopicsList() {
   const navigate = useNavigate()
@@ -39,7 +40,7 @@ export default function TopicsList() {
               <td>{topic.topic_id}</td>
               <td>{topic.title}</td>
               <td>{topic.created_by_user__login}</td>
-              <td>{topic.created_at}</td>
+              <td>{formatDateTime(topic.created_at)}</td>
             </tr>
           ))}
         </tbody>

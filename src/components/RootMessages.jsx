@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getAllRootMessages } from '../api.js'
 import { isMessageCorrect } from '../messageMarkup.js'
+import { formatDateTime } from '../dateFormat.js'
 
 // Поля, по которым можно сортировать таблицу (по ТЗ: User Name, E-mail, дата добавления).
 // Ключ — имя поля в ответе сервера.
@@ -139,7 +140,7 @@ export default function RootMessages({ topicId, reloadVersion }) {
                 )}
                 {/* Без файла сервер отдаёт attachment_name как null; в таблице только имя файла, без содержимого */}
                 <td>{message.attachment_name !== null ? message.attachment_name : ''}</td>
-                <td>{message.created_at}</td>
+                <td>{formatDateTime(message.created_at)}</td>
               </tr>
             ))}
           </tbody>
