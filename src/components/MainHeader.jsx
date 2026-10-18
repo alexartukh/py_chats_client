@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useNavigate } from 'react-router-dom'
+import { useOnlineUsers } from '../useOnlineUsers.js'
 
 export default function MainHeader() {
   const navigate = useNavigate()
@@ -9,6 +10,21 @@ export default function MainHeader() {
   const [loginValue, setLoginValue] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
+
+  // Единственное место, где открывается WebSocket-соединение со списком онлайн: шапка есть на всех страницах
+  const onlineUsers = useOnlineUsers(token)
+
+  // Сервер шлёт один список для всех, вместе с текущим пользователем — убираем себя
+  const otherOnlineLogins = []
+  for (const user of onlineUsers) {
+    if (user.login !== userLogin) {
+      otherOnlineLogins.push(user.login)
+    }
+  }
+  let otherOnlineText = 'никого'
+  if (otherOnlineLogins.length > 0) {
+    otherOnlineText = otherOnlineLogins.join(', ')
+  }
 
   async function handleLogin(e) {
     e.preventDefault()
@@ -58,6 +74,12 @@ export default function MainHeader() {
         </form>
       )}
       {error && <p className="error">Ошибка: {error}</p>}
+      {/* Только вошедшему: без токена соединение не открывается */}
+      {token && (
+        <p className="header-online">
+          Онлайн, кроме вас: {otherOnlineText}
+        </p>
+      )}
     </header>
   )
 }
