@@ -1,6 +1,7 @@
 // Адрес сервера. Локально пустой: запросы /api/... идут через proxy Vite (vite.config.js).
 // При сборке для хостинга задаётся переменной VITE_API_BASE, например https://py-chats.onrender.com
-export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
+// Слэш в конце убирается: иначе получится https://host//api/... и сервер ответит 404
+export const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/+$/, '')
 
 // Адреса API сервера (http://localhost:8000). Поменяй, если у тебя другие.
 export const USERS_URL = API_BASE + '/api/users'
